@@ -256,15 +256,15 @@ def eval_move(args):
     eval, _ = minimax(board, depth-1, -float('inf'), float('inf'), False, color)
     return eval, move
 
-def get_minimax_move(board, depth=3):
+def get_minimax_move(board, depth=2):  # Reduced default depth for cloud performance
     color = board.turn
     legal_moves = list(board.legal_moves)
     if not legal_moves:
         return None
     board_fen = board.fen()
     args_list = [(board_fen, move.uci(), depth, color) for move in legal_moves]
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        results = list(executor.map(eval_move, args_list))
+    # Cloud-friendly: sequential evaluation (remove ProcessPoolExecutor)
+    results = [eval_move(args) for args in args_list]
     maximizing = True
     if maximizing:
         best = max(results, key=lambda x: x[0])
