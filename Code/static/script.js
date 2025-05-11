@@ -4,6 +4,7 @@ let $status = $('#status');
 let $board = $('#board');
 let playerColor = null;
 let pendingPromotion = null;
+let moveHistory = [];
 
 function getOrientationStr() {
     return playerColor === 'b' ? 'black' : 'white';
@@ -70,6 +71,40 @@ function showPromotionDialog(from, to, color) {
     $dialog.show();
 }
 
+function updateMoveNotation() {
+    const $moveList = $('#move-list');
+    $moveList.empty();
+    
+    const moves = game.history({ verbose: true });
+    let currentMoveNumber = 1;
+    
+    for (let i = 0; i < moves.length; i += 2) {
+        const moveRow = $('<div class="move-row"></div>');
+        const moveNumber = $('<span class="move-number"></span>').text(currentMoveNumber + '.');
+        
+        const whiteMove = $('<span class="move-white"></span>').text(moves[i].san);
+        if (i === moves.length - 1) {
+            whiteMove.addClass('move-current');
+        }
+        
+        moveRow.append(moveNumber, whiteMove);
+        
+        if (i + 1 < moves.length) {
+            const blackMove = $('<span class="move-black"></span>').text(moves[i + 1].san);
+            if (i + 1 === moves.length - 1) {
+                blackMove.addClass('move-current');
+            }
+            moveRow.append(blackMove);
+        }
+        
+        $moveList.append(moveRow);
+        currentMoveNumber++;
+    }
+    
+    // Scroll to bottom
+    $moveList.scrollTop($moveList[0].scrollHeight);
+}
+
 function doUserMove(from, to, promotion) {
     const move = game.move({
         from: from,
@@ -78,6 +113,7 @@ function doUserMove(from, to, promotion) {
     });
     if (move === null) return 'snapback';
     updateStatus();
+    updateMoveNotation();
     if (game.turn() !== playerColor && !game.game_over()) {
         setTimeout(makeBotMove, 250);
     }
@@ -139,22 +175,20 @@ function showGameOver() {
 }
 
 function resetGame() {
-    // Reset the game state
     game = new Chess();
     playerColor = null;
+    moveHistory = [];
     
-    // Show color selection
     $('#color-selection').show();
     $('#startBtn').hide();
     $('#resignBtn').hide();
     $status.html('Select your color to start');
+    $('#move-list').empty();
     
-    // Reset the board
     if (board) {
         board.destroy();
     }
     
-    // Initialize new board
     const config = {
         draggable: true,
         position: 'start',
@@ -172,7 +206,9 @@ function resetGame() {
 
 function startNewGame() {
     game = new Chess();
-    // Always destroy and recreate the board with correct orientation
+    moveHistory = [];
+    $('#move-list').empty();
+    
     if (board) {
         board.destroy();
     }
@@ -190,12 +226,11 @@ function startNewGame() {
         orientation: orientationStr
     };
     board = Chessboard('board', config);
-    board.orientation(orientationStr); // Explicitly set orientation
+    board.orientation(orientationStr);
     updateStatus();
     $('#resignBtn').show();
     $('#startBtn').hide();
     
-    // If player is black, make bot's first move
     if (playerColor === 'b') {
         setTimeout(makeBotMove, 250);
     }
@@ -256,6 +291,7 @@ function makeBotMove() {
             board.position(game.fen());
             board.orientation(getOrientationStr());
             updateStatus();
+            updateMoveNotation();
         },
         error: function(error) {
             console.error('Error making bot move:', error);

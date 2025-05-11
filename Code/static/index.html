@@ -18,18 +18,26 @@
         <div class="game-info">
             <p id="status">Select your color to start</p>
         </div>
-        <div id="board-container" style="position:relative; display:inline-block;">
-            <div id="board" style="width: 600px"></div>
+        <div class="game-container">
+            <div class="board-side">
+                <div id="board-container">
+                    <div id="board"></div>
+                </div>
+                <div class="board-controls">
+                    <button id="startBtn" style="display: none;">New Game</button>
+                    <button id="resignBtn" style="display: none;" class="danger-btn">Resign</button>
+                </div>
+            </div>
+            <div id="move-notation" class="move-notation">
+                <h3>Move History</h3>
+                <div id="move-list"></div>
+            </div>
         </div>
         <div id="promotion-dialog" style="display:none; position:fixed; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:10000; align-items:center; justify-content:center;">
             <div style="background:#fff; padding:30px 40px; border-radius:10px; box-shadow:0 0 20px #0005; display:flex; flex-direction:column; align-items:center;">
                 <h2>Choose promotion</h2>
                 <div id="promotion-options" style="display:flex; gap:20px; margin-top:10px;"></div>
             </div>
-        </div>
-        <div class="controls">
-            <button id="startBtn" style="display: none;">New Game</button>
-            <button id="resignBtn" style="display: none;" class="danger-btn">Resign</button>
         </div>
     </div>
 
