@@ -1,6 +1,7 @@
 # Worst Chess Bot
 
 A chess bot that intentionally makes the worst possible legal moves. Play against it and try to win!
+Link to Demo Video and Report: https://drive.google.com/drive/folders/1BtvuvlA3UQbCRXfNwCD8UX3Gt5d7vOLp
 
 ## Features
 
