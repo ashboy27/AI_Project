@@ -1,3 +1,4 @@
+import utils.session
 from flask import Flask, request, jsonify
 import chess
 from Code.minimax_bot import get_minimax_move as get_worst_move
