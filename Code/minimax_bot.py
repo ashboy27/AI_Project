@@ -186,7 +186,7 @@ def minimax(board, depth, alpha, beta, maximizing, color, never_win=True, blunde
         if non_mate_moves:
             legal_moves = non_mate_moves
 
-    if maximizing and depth == 5:
+    if maximizing and depth == 2:
         score = advanced_evaluate(board, color)
         if score > blunder_threshold:
             worst_score = float('inf')
