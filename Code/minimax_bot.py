@@ -359,7 +359,15 @@ def get_minimax_move(board, depth=2):
         move = chess.Move.from_uci(str(args[1]))
         board.push(move)
         
-        eval_score = quiescence_search(board, -float('inf'), float('inf'), args[3])
+        # Use minimax for deeper search with alpha-beta pruning
+        eval_score, _ = minimax(board, depth-1, -float('inf'), float('inf'), False, color, 
+                              never_win=True, blunder_threshold=1.5)
+        
+        # Add quiescence search for tactical positions
+        if board.is_capture(move) or board.is_check():
+            q_score = quiescence_search(board, -float('inf'), float('inf'), args[3])
+            eval_score = (eval_score + q_score) / 2  # Average both evaluations
+            
         results.append((eval_score, move))
     
     if current_score > 0:
