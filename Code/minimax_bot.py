@@ -166,7 +166,7 @@ def is_open_file(board, file_index, color):
 def is_draw(board):
     return board.is_stalemate() or board.is_insufficient_material() or board.can_claim_fifty_moves() or board.can_claim_threefold_repetition()
 
-def minimax(board, depth, alpha, beta, maximizing, color, never_win=True, blunder_threshold=5):
+def minimax(board, depth, alpha, beta, maximizing, color, never_win=True, blunder_threshold=1.5):
     if depth == 0 or board.is_game_over():
         eval_score = advanced_evaluate(board, color)
         if is_draw(board):
