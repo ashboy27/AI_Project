@@ -83,6 +83,9 @@ PIECE_SQUARE_TABLES = {
 }
 
 def is_passed_pawn(board, square, color):
+    """
+    Checks if a pawn is a passed pawn (no enemy pawns can capture it on its way to promotion).
+    """
     file = chess.square_file(square)
     rank = chess.square_rank(square)
     enemy = not color
@@ -108,6 +111,9 @@ def is_passed_pawn(board, square, color):
         return True
 
 def piece_square_score(board, color):
+    """
+    Calculates the positional score based on piece-square tables.
+    """
     score = 0
     for piece_type, table in PIECE_SQUARE_TABLES.items():
         for sq in board.pieces(piece_type, color):
@@ -116,6 +122,9 @@ def piece_square_score(board, color):
     return score
 
 def advanced_evaluate(board, color):
+    """
+    Evaluates the board position considering material, piece positions, mobility, pawn structure, and king safety.
+    """
     value = 0
     for piece_type in PIECE_VALUES:
         value += len(board.pieces(piece_type, color)) * PIECE_VALUES[piece_type]
@@ -156,6 +165,9 @@ def advanced_evaluate(board, color):
     return value
 
 def is_open_file(board, file_index, color):
+    """
+    Checks if a file is open (no pawns of the given color on that file).
+    """
     for rank in range(8):
         sq = chess.square(file_index, rank)
         piece = board.piece_at(sq)
@@ -164,9 +176,15 @@ def is_open_file(board, file_index, color):
     return True
 
 def is_draw(board):
+    """
+    Checks if the current position is a draw.
+    """
     return board.is_stalemate() or board.is_insufficient_material() or board.can_claim_fifty_moves() or board.can_claim_threefold_repetition()
 
 def minimax(board, depth, alpha, beta, maximizing, color, never_win=True, blunder_threshold=1.5):
+    """
+    Implements the minimax algorithm with alpha-beta pruning. When ahead, it tries to make suboptimal moves.
+    """
     if depth == 0 or board.is_game_over():
         eval_score = advanced_evaluate(board, color)
         if is_draw(board):
@@ -249,6 +267,9 @@ def minimax(board, depth, alpha, beta, maximizing, color, never_win=True, blunde
         return min_eval, best_move
 
 def eval_move(args):
+    """
+    Evaluates a single move using minimax search.
+    """
     board_fen, move_uci, depth, color = args
     board = chess.Board(board_fen)
     move = chess.Move.from_uci(str(move_uci))
@@ -256,18 +277,96 @@ def eval_move(args):
     eval, _ = minimax(board, depth-1, -float('inf'), float('inf'), False, color)
     return eval, move
 
-def get_minimax_move(board, depth=2):  # Reduced default depth for cloud performance
+def quiescence_search(board, alpha, beta, color, depth=2):
+    """
+    Performs quiescence search to handle tactical positions, focusing on captures and important moves.
+    """
+    stand_pat = advanced_evaluate(board, color)
+    
+    stand_pat += random.uniform(-0.3, 0.3)
+    
+    if stand_pat >= beta:
+        return beta
+    alpha = max(alpha, stand_pat)
+    
+    if depth == 0:
+        return stand_pat
+        
+    for move in board.legal_moves:
+        if not board.is_capture(move):
+            continue
+            
+        if board.piece_at(move.to_square):
+            piece_value = PIECE_VALUES[board.piece_at(move.to_square).piece_type]
+            if piece_value > 3:
+                continue
+                
+        board.push(move)
+        score = -quiescence_search(board, -beta, -alpha, not color, depth-1)
+        board.pop()
+        
+        if score >= beta:
+            return beta
+        alpha = max(alpha, score)
+    
+    return alpha
+
+def get_minimax_move(board, depth=2):
+    """
+    Main function to get the next move. Uses a combination of minimax, quiescence search, and randomization
+    to make the bot play worse when ahead while maintaining some challenge.
+    """
     color = board.turn
     legal_moves = list(board.legal_moves)
     if not legal_moves:
         return None
+    
+    current_score = advanced_evaluate(board, color)
+    
+    if current_score > 1.5:
+        moves = []
+        for move in legal_moves:
+            test_board = board.copy()
+            test_board.push(move)
+            
+            if test_board.is_checkmate():
+                continue
+                
+            if board.is_capture(move):
+                captured_piece = board.piece_at(move.to_square)
+                if captured_piece and PIECE_VALUES[captured_piece.piece_type] > 3:
+                    continue
+                    
+            if test_board.is_attacked_by(not color, move.to_square):
+                continue
+                
+            if test_board.is_check():
+                continue
+                
+            moves.append(move)
+        
+        if moves:
+            if random.random() < 0.3:
+                return random.choice(legal_moves)
+            return random.choice(moves)
+    
     board_fen = board.fen()
     args_list = [(board_fen, move.uci(), depth, color) for move in legal_moves]
-    # Cloud-friendly: sequential evaluation (remove ProcessPoolExecutor)
-    results = [eval_move(args) for args in args_list]
-    maximizing = True
-    if maximizing:
-        best = max(results, key=lambda x: x[0])
+    results = []
+    
+    for args in args_list:
+        board = chess.Board(args[0])
+        move = chess.Move.from_uci(str(args[1]))
+        board.push(move)
+        
+        eval_score = quiescence_search(board, -float('inf'), float('inf'), args[3])
+        results.append((eval_score, move))
+    
+    if current_score > 0:
+        results.sort(key=lambda x: x[0])
+        worst_moves = results[:max(1, len(results) // 3)]
+        return random.choice(worst_moves)[1]
     else:
-        best = min(results, key=lambda x: x[0])
-    return best[1] 
+        results.sort(key=lambda x: x[0], reverse=True)
+        best_moves = results[:max(1, len(results) // 3)]
+        return random.choice(best_moves)[1] 
